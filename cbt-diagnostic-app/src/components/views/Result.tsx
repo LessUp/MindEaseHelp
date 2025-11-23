@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, Info, RotateCcw, ChevronLeft, ShieldCheck, BrainCircuit } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { ShareResult } from '../features/ShareResult';
+import { CbtTools } from '../features/CbtTools';
 import { type Phq9Severity, type Gad7Severity } from '../../utils/scoring';
 import { cn } from '../../lib/utils';
 
@@ -79,7 +81,16 @@ export function Result({
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-500 to-emerald-500"></div>
           <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3 mb-6">
             <BrainCircuit className="text-sky-600 w-8 h-8" />
-            评估结果分析
+            <span className="flex-1">评估结果分析</span>
+            <ShareResult 
+              phqTotal={phqTotal} 
+              gadTotal={gadTotal}
+              phqLevel={phqLevel}
+              gadLevel={gadLevel}
+              phqLabel={phqInfo.label}
+              gadLabel={gadInfo.label}
+              date={new Date().toLocaleDateString('zh-CN')}
+            />
           </h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -209,6 +220,11 @@ export function Result({
             </p>
           </div>
         </Card>
+      </motion.div>
+
+      {/* Interactive CBT Tools */}
+      <motion.div variants={itemVariants}>
+        <CbtTools />
       </motion.div>
 
       {/* Actions */}
