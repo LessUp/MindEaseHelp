@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wind, Brain, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Wind, Brain, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Sparkles, Headphones, Play, Square } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -95,6 +95,201 @@ const BoxBreathing = () => {
   );
 };
 
+// --- Meditation Guide Component ---
+const MeditationGuide = () => {
+  const [isActive, setIsActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          setIsActive(false);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  useEffect(() => {
+    // Determine phase based on time left (Total 180s)
+    // 180-120: Phase 0 (Prepare & Breath)
+    // 120-60: Phase 1 (Body Scan)
+    // 60-0: Phase 2 (Mindfulness)
+    if (timeLeft > 120) setPhase(0);
+    else if (timeLeft > 60) setPhase(1);
+    else if (timeLeft > 0) setPhase(2);
+    else setPhase(3); // Finished
+  }, [timeLeft]);
+
+  const toggleTimer = () => {
+    if (isActive) {
+      setIsActive(false);
+    } else {
+      if (timeLeft === 0) setTimeLeft(180);
+      setIsActive(true);
+    }
+  };
+
+  const reset = () => {
+    setIsActive(false);
+    setTimeLeft(180);
+    setPhase(0);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getPhaseText = () => {
+    if (timeLeft === 0) return "练习完成。感受此刻的平静。";
+    switch (phase) {
+      case 0: return "调整坐姿，轻轻闭上眼睛。将注意力集中在呼吸上，感受空气的进出。";
+      case 1: return "从头顶开始，缓慢向下扫描身体。放松紧绷的肌肉，肩膀下沉，眉头舒展。";
+      case 2: return "观察此刻的念头，像观察天空中的云彩一样。不评判，只是静静看着它们飘过。";
+      default: return "准备开始...";
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center py-6 space-y-6">
+      <div className="relative w-40 h-40 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
+        <motion.div 
+          className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent"
+          animate={{ rotate: isActive ? 360 : 0 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        />
+        <div className="text-3xl font-bold text-slate-700 font-mono">
+          {formatTime(timeLeft)}
+        </div>
+      </div>
+
+      <div className="text-center max-w-md space-y-2 min-h-[80px]">
+        <h4 className="text-lg font-bold text-indigo-900">
+          {timeLeft === 0 ? "完成" : ["专注呼吸", "身体扫描", "正念观察"][phase]}
+        </h4>
+        <p className="text-slate-600 leading-relaxed transition-all duration-500">
+          {getPhaseText()}
+        </p>
+      </div>
+
+      <div className="flex gap-4">
+        <Button 
+          onClick={toggleTimer}
+          className={cn("min-w-[100px]", isActive ? "bg-amber-500 hover:bg-amber-600" : "bg-indigo-600 hover:bg-indigo-700")}
+        >
+          {isActive ? <span className="flex items-center gap-2"><Square className="w-4 h-4 fill-current" /> 暂停</span> : <span className="flex items-center gap-2"><Play className="w-4 h-4 fill-current" /> {timeLeft < 180 && timeLeft > 0 ? "继续" : "开始"}</span>}
+        </Button>
+        <Button variant="outline" onClick={reset} disabled={timeLeft === 180}>
+          <RefreshCw className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// --- White Noise Player Component ---
+const WhiteNoisePlayer = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioCtx, setAudioCtx] = useState<AudioContext | null>(null);
+  const [gainNode, setGainNode] = useState<GainNode | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (audioCtx) {
+        audioCtx.close();
+      }
+    };
+  }, [audioCtx]);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      // Stop
+      audioCtx?.suspend();
+      setIsPlaying(false);
+    } else {
+      // Start
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new Ctx();
+        
+        // Create Brown Noise
+        const bufferSize = 2 * ctx.sampleRate;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5; // Compensate for gain
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        noise.loop = true;
+        
+        const gain = ctx.createGain();
+        gain.gain.value = 0.5; // Initial volume
+        
+        noise.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(0);
+
+        setAudioCtx(ctx);
+        setGainNode(gain);
+        setIsPlaying(true);
+      } else {
+        audioCtx.resume();
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center py-8 space-y-6">
+      <div className={cn(
+        "w-32 h-32 rounded-full flex items-center justify-center transition-all duration-700",
+        isPlaying ? "bg-sky-100 shadow-lg shadow-sky-200 scale-110" : "bg-slate-100"
+      )}>
+        <Headphones className={cn(
+          "w-12 h-12 transition-colors duration-500",
+          isPlaying ? "text-sky-600" : "text-slate-400"
+        )} />
+      </div>
+
+      <div className="text-center space-y-2">
+        <h4 className="text-lg font-bold text-slate-800">
+          {isPlaying ? "正在播放：温和褐噪" : "白噪音疗愈"}
+        </h4>
+        <p className="text-sm text-slate-500 max-w-xs mx-auto">
+          褐噪（Brown Noise）比白噪音更低沉柔和，像远处的雷声或海浪，能有效屏蔽环境干扰，帮助放松。
+        </p>
+      </div>
+
+      <Button 
+        onClick={togglePlay}
+        size="lg"
+        className={cn(
+          "rounded-full px-8 shadow-md transition-all",
+          isPlaying ? "bg-slate-700 hover:bg-slate-800" : "bg-sky-600 hover:bg-sky-700"
+        )}
+      >
+        {isPlaying ? <span className="flex items-center gap-2"><Square className="w-4 h-4 fill-current" /> 停止播放</span> : <span className="flex items-center gap-2"><Play className="w-4 h-4 fill-current" /> 播放白噪音</span>}
+      </Button>
+    </div>
+  );
+};
+
 // --- Distortion Checker Component ---
 const DISTORTIONS = [
   {
@@ -169,7 +364,7 @@ const DistortionChecker = () => {
 };
 
 export function CbtTools() {
-  const [activeTab, setActiveTab] = useState<'breathing' | 'distortion'>('breathing');
+  const [activeTab, setActiveTab] = useState<'breathing' | 'meditation' | 'whitenoise' | 'distortion'>('breathing');
 
   return (
     <Card className="bg-white border-slate-200 shadow-lg shadow-slate-200/30 overflow-hidden">
@@ -180,44 +375,75 @@ export function CbtTools() {
         </h3>
       </div>
       
-      <div className="flex border-b border-slate-100">
+      <div className="flex border-b border-slate-100 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('breathing')}
           className={cn(
-            "flex-1 py-3 text-sm font-medium transition-colors relative",
+            "flex-1 py-3 px-4 text-sm font-medium transition-colors relative whitespace-nowrap min-w-[90px]",
             activeTab === 'breathing' ? "text-sky-600 bg-sky-50/50" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <span className="flex items-center justify-center gap-2">
             <Wind className="w-4 h-4" />
-            呼吸放松
+            呼吸
           </span>
           {activeTab === 'breathing' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-sky-500" />}
         </button>
         <button
+          onClick={() => setActiveTab('meditation')}
+          className={cn(
+            "flex-1 py-3 px-4 text-sm font-medium transition-colors relative whitespace-nowrap min-w-[90px]",
+            activeTab === 'meditation' ? "text-sky-600 bg-sky-50/50" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            冥想
+          </span>
+          {activeTab === 'meditation' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-sky-500" />}
+        </button>
+        <button
+          onClick={() => setActiveTab('whitenoise')}
+          className={cn(
+            "flex-1 py-3 px-4 text-sm font-medium transition-colors relative whitespace-nowrap min-w-[90px]",
+            activeTab === 'whitenoise' ? "text-sky-600 bg-sky-50/50" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Headphones className="w-4 h-4" />
+            白噪音
+          </span>
+          {activeTab === 'whitenoise' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-sky-500" />}
+        </button>
+        <button
           onClick={() => setActiveTab('distortion')}
           className={cn(
-            "flex-1 py-3 text-sm font-medium transition-colors relative",
+            "flex-1 py-3 px-4 text-sm font-medium transition-colors relative whitespace-nowrap min-w-[110px]",
             activeTab === 'distortion' ? "text-sky-600 bg-sky-50/50" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <span className="flex items-center justify-center gap-2">
             <AlertCircle className="w-4 h-4" />
-            思维陷阱识别
+            认知纠偏
           </span>
           {activeTab === 'distortion' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-sky-500" />}
         </button>
       </div>
 
-      <div className="p-6 min-h-[300px]">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          {activeTab === 'breathing' ? <BoxBreathing /> : <DistortionChecker />}
-        </motion.div>
+      <div className="p-6 min-h-[320px] flex items-center justify-center w-full">
+        <div className="w-full max-w-lg">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'breathing' && <BoxBreathing />}
+            {activeTab === 'meditation' && <MeditationGuide />}
+            {activeTab === 'whitenoise' && <WhiteNoisePlayer />}
+            {activeTab === 'distortion' && <DistortionChecker />}
+          </motion.div>
+        </div>
       </div>
     </Card>
   );
