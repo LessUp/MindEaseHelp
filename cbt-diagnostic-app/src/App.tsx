@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+
 import Questionnaire from './components/Questionnaire'
+import { Layout } from './components/layout/Layout'
+import { Intro } from './components/views/Intro'
+import { Result } from './components/views/Result'
+import { ProgressBar } from './components/ui/ProgressBar'
+import { Button } from './components/ui/Button'
+
 import { PHQ9_ITEMS, GAD7_ITEMS } from './data/scales'
 import {
   phq9Total,
@@ -43,6 +52,7 @@ export default function App() {
   const tips = useMemo(() => generateCbtTips(phqLevel, gadLevel), [phqLevel, gadLevel])
   const phqInfo = useMemo(() => PHQ9_SEVERITY_INFO[phqLevel], [phqLevel])
   const gadInfo = useMemo(() => GAD7_SEVERITY_INFO[gadLevel], [gadLevel])
+  
   const crisisSupportTips = useMemo(() => {
     if (triageRes.level === 'crisis') {
       return [
@@ -106,6 +116,9 @@ export default function App() {
 
   useEffect(() => {
     if (!allowLocalSave) return
+    // Don't save if we are not in result step or if data is incomplete
+    if (step !== 'result') return
+
     try {
       const payload = {
         ts: Date.now(),
@@ -119,46 +132,35 @@ export default function App() {
       localStorage.setItem('cbt-diagnostic-latest', JSON.stringify(payload))
       setLastSaved(payload)
     } catch {}
-  }, [allowLocalSave, phq9, gad7, phqTotal, gadTotal, phqLevel, gadLevel])
+  }, [step, allowLocalSave, phq9, gad7, phqTotal, gadTotal, phqLevel, gadLevel])
 
   const allAnswered = (arr: number[]) => arr.every(v => v >= 0)
+  const answeredCount = (arr: number[]) => arr.filter(v => v >= 0).length
 
   const severityText = (s: Phq9Severity | Gad7Severity) => {
     switch (s) {
-      case 'minimal':
-        return '最轻'
-      case 'mild':
-        return '轻度'
-      case 'moderate':
-        return '中度'
-      case 'moderately_severe':
-        return '中重度'
-      case 'severe':
-        return '重度'
+      case 'minimal': return '最轻'
+      case 'mild': return '轻度'
+      case 'moderate': return '中度'
+      case 'moderately_severe': return '中重度'
+      case 'severe': return '重度'
     }
   }
 
   const badgeClass = (s: Phq9Severity | Gad7Severity) => {
     switch (s) {
-      case 'minimal':
-        return 'badge badge-success'
-      case 'mild':
-        return 'badge'
-      case 'moderate':
-        return 'badge badge-warning'
+      case 'minimal': return 'badge badge-success bg-emerald-100 text-emerald-800'
+      case 'mild': return 'badge bg-blue-100 text-blue-800'
+      case 'moderate': return 'badge badge-warning bg-amber-100 text-amber-800'
       case 'moderately_severe':
-      case 'severe':
-        return 'badge badge-danger'
+      case 'severe': return 'badge badge-danger bg-red-100 text-red-800'
     }
   }
 
   const formatTimestamp = (ts: number) =>
     new Intl.DateTimeFormat('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
     }).format(ts)
 
   const restoreFromLastSaved = () => {
@@ -175,241 +177,117 @@ export default function App() {
     setLastSaved(null)
   }
 
+  const handleRestart = () => {
+    setPhq9(Array(PHQ9_ITEMS.length).fill(-1))
+    setGad7(Array(GAD7_ITEMS.length).fill(-1))
+    setStep('intro')
+  }
+
+  // Animation variants for page transitions
+  const pageVariants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 }
+  }
+
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto container-narrow px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="Logo" className="h-6 w-6" />
-            <div className="font-semibold bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-emerald-600">
-              CBT 评估与建议
-            </div>
-          </div>
-          <div className="text-xs text-slate-500">v0.1 本地运行</div>
-        </div>
-      </header>
-
-      <main className="mx-auto container-narrow px-4 py-6 space-y-6">
+    <Layout>
+      <AnimatePresence mode="wait">
         {step === 'intro' && (
-          <>
-            <div className="card space-y-4">
-              <h1 className="text-2xl font-bold">认知行为疗法（CBT）自助评估</h1>
-              <p className="text-slate-700 text-sm leading-6">
-                本工具整合 PHQ-9 与 GAD-7 量表，用于自我筛查抑郁与焦虑症状强度，并给出教育性建议，不能替代专业诊断与治疗。
-              </p>
-              <ul className="text-slate-700 text-sm list-disc pl-5 space-y-1">
-                <li>预计耗时 3-5 分钟；数据默认只在本地处理，不会上传。</li>
-                <li>若出现持续的自伤/自杀想法或计划，请立即联系当地紧急服务或就近医院急诊。</li>
-              </ul>
-              <div className="flex items-center gap-3">
-                <button className="btn btn-primary" onClick={() => setStep('phq9')}>
-                  开始评估
-                </button>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="accent-blue-600"
-                    checked={allowLocalSave}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowLocalSave(e.target.checked)}
-                  />
-                  允许在本地保存结果
-                </label>
-              </div>
-              <p className="text-xs text-slate-500">提示：启用本地保存后，可在同一设备浏览器中查看最近一次结果。</p>
-            </div>
-
-            {lastSaved && (
-              <div className="card space-y-4 border-blue-200 bg-blue-50/60">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-sm text-slate-600">最近一次评估记录</div>
-                    <div className="text-base font-semibold text-slate-800">{formatTimestamp(lastSaved.ts)}</div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button className="btn btn-primary text-sm" onClick={restoreFromLastSaved}>
-                      查看最近结果
-                    </button>
-                    <button className="btn btn-ghost text-sm" onClick={clearLocalSnapshot}>
-                      清除本地记录
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-blue-200 bg-white/80 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">PHQ-9</div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="text-2xl font-bold text-slate-900">{lastSaved.phqTotal}</div>
-                      <span className={badgeClass(lastSaved.phqLevel)}>{severityText(lastSaved.phqLevel)}</span>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-blue-200 bg-white/80 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">GAD-7</div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="text-2xl font-bold text-slate-900">{lastSaved.gadTotal}</div>
-                      <span className={badgeClass(lastSaved.gadLevel)}>{severityText(lastSaved.gadLevel)}</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-500">
-                  本地数据仅保存在当前浏览器，可随时通过“清除本地记录”移除。
-                </p>
-              </div>
-            )}
-          </>
+          <motion.div key="intro" {...pageVariants}>
+            <Intro
+              onStart={() => setStep('phq9')}
+              allowLocalSave={allowLocalSave}
+              setAllowLocalSave={setAllowLocalSave}
+              lastSaved={lastSaved}
+              onRestore={restoreFromLastSaved}
+              onClearHistory={clearLocalSnapshot}
+              formatTimestamp={formatTimestamp}
+              badgeClass={badgeClass}
+              severityText={severityText}
+            />
+          </motion.div>
         )}
 
         {step === 'phq9' && (
-          <>
+          <motion.div key="phq9" className="space-y-6" {...pageVariants}>
+            <ProgressBar current={answeredCount(phq9)} total={PHQ9_ITEMS.length} />
             <Questionnaire
-              title="PHQ-9 抑郁症状筛查"
-              subtitle="过去两周内，这些问题对你造成的困扰频率？"
+              title="第一部分：PHQ-9"
+              subtitle="请根据过去两周内的实际感受，回答以下问题。"
               items={PHQ9_ITEMS}
               responses={phq9}
-              onChange={(index: number, value: number) =>
-                setPhq9((prev: number[]) => prev.map((v: number, i: number) => (i === index ? value : v)))
+              onChange={(index, value) =>
+                setPhq9(prev => prev.map((v, i) => (i === index ? value : v)))
               }
             />
-            <div className="flex items-center justify-between">
-              <button className="btn btn-ghost" onClick={() => setStep('intro')}>返回</button>
-              <button className="btn btn-primary" onClick={() => setStep('gad7')} disabled={!allAnswered(phq9)}>下一步</button>
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="ghost" onClick={() => setStep('intro')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                返回
+              </Button>
+              <Button 
+                onClick={() => setStep('gad7')} 
+                disabled={!allAnswered(phq9)}
+                className="w-32"
+              >
+                下一步
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
-          </>
+          </motion.div>
         )}
 
         {step === 'gad7' && (
-          <>
+          <motion.div key="gad7" className="space-y-6" {...pageVariants}>
+            <ProgressBar current={answeredCount(gad7)} total={GAD7_ITEMS.length} />
             <Questionnaire
-              title="GAD-7 广泛性焦虑筛查"
-              subtitle="过去两周内，这些问题对你造成的困扰频率？"
+              title="第二部分：GAD-7"
+              subtitle="请根据过去两周内的实际感受，回答以下问题。"
               items={GAD7_ITEMS}
               responses={gad7}
-              onChange={(index: number, value: number) =>
-                setGad7((prev: number[]) => prev.map((v: number, i: number) => (i === index ? value : v)))
+              onChange={(index, value) =>
+                setGad7(prev => prev.map((v, i) => (i === index ? value : v)))
               }
             />
-            <div className="flex items-center justify-between">
-              <button className="btn btn-ghost" onClick={() => setStep('phq9')}>上一步</button>
-              <button className="btn btn-primary" onClick={() => setStep('result')} disabled={!allAnswered(gad7)}>
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="ghost" onClick={() => setStep('phq9')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                上一步
+              </Button>
+              <Button 
+                onClick={() => setStep('result')} 
+                disabled={!allAnswered(gad7)}
+                className="w-32"
+              >
                 查看结果
-              </button>
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
-          </>
+          </motion.div>
         )}
 
         {step === 'result' && (
-          <>
-            <div className="card space-y-3">
-              <h2 className="text-xl font-semibold">结果总览</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="border rounded-lg p-4">
-                  <div className="text-sm text-slate-600">PHQ-9</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="text-2xl font-bold">{phqTotal}</div>
-                    <span className={badgeClass(phqLevel)}>{phqInfo.label}</span>
-                  </div>
-                </div>
-                <div className="border rounded-lg p-4">
-                  <div className="text-sm text-slate-600">GAD-7</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="text-2xl font-bold">{gadTotal}</div>
-                    <span className={badgeClass(gadLevel)}>{gadInfo.label}</span>
-                  </div>
-                </div>
-              </div>
-
-              {triageRes.level === 'none' && (
-                <div className="badge">未检测到立即风险</div>
-              )}
-              {triageRes.level === 'high' && (
-                <div className="badge badge-warning">建议尽快联系专业人员进行评估</div>
-              )}
-              {triageRes.level === 'crisis' && (
-                <div className="badge badge-danger">如出现持续的自伤/自杀想法或计划，请立即联系当地紧急服务或就近医院急诊</div>
-              )}
-              {triageRes.reasons.length > 0 && (
-                <ul className="text-sm text-slate-700 list-disc pl-5">
-                  {triageRes.reasons.map((r, i) => (
-                    <li key={i}>{r}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="card space-y-4">
-              <h3 className="text-lg font-semibold">严重度解读</h3>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-slate-200 p-4">
-                  <div className="text-sm font-semibold text-slate-800">PHQ-9 抑郁症状</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{phqInfo.description}</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    <span className="font-medium text-slate-700">建议：</span>
-                    {phqInfo.recommendation}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-slate-200 p-4">
-                  <div className="text-sm font-semibold text-slate-800">GAD-7 焦虑症状</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{gadInfo.description}</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    <span className="font-medium text-slate-700">建议：</span>
-                    {gadInfo.recommendation}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {crisisSupportTips.length > 0 && (
-              <div className="card space-y-3 border-red-200 bg-red-50/70">
-                <h3 className="text-lg font-semibold text-red-700">安全与求助建议</h3>
-                <p className="text-sm text-red-700/90">
-                  当前量表结果提示较高的风险，请优先关注安全并尽快寻求专业人员协助：
-                </p>
-                <ul className="list-disc space-y-2 pl-5 text-sm text-red-800">
-                  {crisisSupportTips.map((tip, index) => (
-                    <li key={index}>{tip}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-2">基于 CBT 的自助建议</h3>
-              <ul className="list-disc pl-5 space-y-2 text-slate-700">
-                {tips.map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ul>
-              <p className="text-xs text-slate-500 mt-3">本内容仅用于健康教育与自助管理，不能替代专业评估与治疗。</p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <button className="btn btn-ghost" onClick={() => setStep('gad7')}>上一步</button>
-              <div className="flex items-center gap-3">
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="accent-blue-600"
-                    checked={allowLocalSave}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowLocalSave(e.target.checked)}
-                  />
-                  允许在本地保存结果
-                </label>
-                <button
-                  className="btn"
-                  onClick={() => {
-                    setPhq9(Array(PHQ9_ITEMS.length).fill(-1))
-                    setGad7(Array(GAD7_ITEMS.length).fill(-1))
-                    setStep('intro')
-                  }}
-                >重新开始</button>
-              </div>
-            </div>
-          </>
+          <motion.div key="result" {...pageVariants}>
+            <Result
+              phqTotal={phqTotal}
+              gadTotal={gadTotal}
+              phqLevel={phqLevel}
+              gadLevel={gadLevel}
+              triageRes={triageRes}
+              phqInfo={phqInfo}
+              gadInfo={gadInfo}
+              crisisSupportTips={crisisSupportTips}
+              tips={tips}
+              allowLocalSave={allowLocalSave}
+              setAllowLocalSave={setAllowLocalSave}
+              onRestart={handleRestart}
+              onBack={() => setStep('gad7')}
+              badgeClass={badgeClass}
+            />
+          </motion.div>
         )}
-      </main>
-
-      <footer className="mx-auto container-narrow px-4 py-8 text-xs text-slate-500">
-        <div>免责声明：本应用不提供医疗诊断或紧急服务。如遇危机，请立即联系当地紧急服务或就近医院急诊。</div>
-      </footer>
-    </div>
+      </AnimatePresence>
+    </Layout>
   )
 }

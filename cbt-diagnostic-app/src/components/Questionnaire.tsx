@@ -1,45 +1,68 @@
-import React from 'react'
-import { COMMON_OPTIONS } from '../data/scales'
+import React from 'react';
+import { motion } from 'framer-motion';
+import { COMMON_OPTIONS } from '../data/scales';
+import { Card } from './ui/Card';
+import { cn } from '../lib/utils';
 
 interface Props {
-  title: string
-  subtitle?: string
-  items: string[]
-  responses: number[]
-  onChange: (index: number, value: number) => void
+  title: string;
+  subtitle?: string;
+  items: string[];
+  responses: number[];
+  onChange: (index: number, value: number) => void;
 }
 
 export default function Questionnaire({ title, subtitle, items, responses, onChange }: Props) {
   return (
-    <div className="card">
-      <h2 className="text-xl font-semibold mb-1">{title}</h2>
-      {subtitle && <p className="text-sm text-slate-600 mb-4">{subtitle}</p>}
-      <div className="space-y-4">
+    <Card className="space-y-6">
+      <div className="border-b border-slate-100 pb-4">
+        <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
+        {subtitle && <p className="text-slate-500 mt-1">{subtitle}</p>}
+      </div>
+      
+      <div className="space-y-8">
         {items.map((q, idx) => (
-          <div key={idx} className="border border-slate-200 rounded-lg p-4">
-            <div className="mb-3 font-medium">{idx + 1}. {q}</div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <motion.div 
+            key={idx} 
+            className="space-y-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+          >
+            <div className="font-medium text-lg text-slate-800">
+              <span className="inline-block w-6 text-slate-400 font-normal">{idx + 1}.</span>
+              {q}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pl-6">
               {COMMON_OPTIONS.map(opt => {
-                const id = `${title}-${idx}-${opt.value}`
-                const name = `${title}-${idx}`
+                const isSelected = responses[idx] === opt.value;
                 return (
-                  <label key={opt.value} htmlFor={id} className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer hover:bg-slate-50 ${responses[idx] === opt.value ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}>
-                    <input
-                      id={id}
-                      type="radio"
-                      className="accent-blue-600"
-                      name={name}
-                      checked={responses[idx] === opt.value}
-                      onChange={() => onChange(idx, opt.value)}
-                    />
-                    <span className="text-sm">{opt.label}</span>
-                  </label>
+                  <button
+                    key={opt.value}
+                    onClick={() => onChange(idx, opt.value)}
+                    className={cn(
+                      "relative flex items-center justify-center p-3 rounded-lg border transition-all text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1",
+                      isSelected 
+                        ? "border-sky-600 bg-sky-50 text-sky-700 shadow-sm" 
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    )}
+                  >
+                    {isSelected && (
+                      <motion.div
+                        layoutId={`indicator-${idx}`}
+                        className="absolute inset-0 rounded-lg border-2 border-sky-600 pointer-events-none"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    )}
+                    {opt.label}
+                  </button>
                 )
               })}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </Card>
   )
 }
