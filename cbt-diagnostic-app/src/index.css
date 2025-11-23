@@ -8,6 +8,8 @@
 
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
+  background: radial-gradient(circle at 50% 0%, #f0f9ff 0%, #f1f5f9 100%);
+  min-height: 100vh;
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -21,5 +23,9 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-md border border-white/50 shadow-xl shadow-slate-200/40;
 }

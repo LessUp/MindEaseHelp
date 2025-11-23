@@ -37,11 +37,22 @@ type AssessmentSnapshot = {
 
 export default function App() {
   const [step, setStep] = useState<Step>('intro')
+  const [direction, setDirection] = useState(0)
   const [phq9, setPhq9] = useState<number[]>(Array(PHQ9_ITEMS.length).fill(-1))
   const [gad7, setGad7] = useState<number[]>(Array(GAD7_ITEMS.length).fill(-1))
 
   const [allowLocalSave, setAllowLocalSave] = useState<boolean>(false)
   const [lastSaved, setLastSaved] = useState<AssessmentSnapshot | null>(null)
+
+  // Scroll to top on step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [step])
+
+  const paginate = (newStep: Step, newDirection: number) => {
+    setDirection(newDirection)
+    setStep(newStep)
+  }
 
   // Derived
   const phqTotal = useMemo(() => phq9Total(phq9.map(v => (v < 0 ? 0 : v))), [phq9])
@@ -163,40 +174,55 @@ export default function App() {
       hour: '2-digit', minute: '2-digit',
     }).format(ts)
 
+  const handleRestart = () => {
+    setPhq9(Array(PHQ9_ITEMS.length).fill(-1))
+    setGad7(Array(GAD7_ITEMS.length).fill(-1))
+    paginate('intro', -1)
+  }
+
   const restoreFromLastSaved = () => {
     if (!lastSaved) return
     setPhq9([...lastSaved.phq9])
     setGad7([...lastSaved.gad7])
-    setStep('result')
-  }
-
-  const clearLocalSnapshot = () => {
-    try {
-      localStorage.removeItem('cbt-diagnostic-latest')
-    } catch {}
-    setLastSaved(null)
-  }
-
-  const handleRestart = () => {
-    setPhq9(Array(PHQ9_ITEMS.length).fill(-1))
-    setGad7(Array(GAD7_ITEMS.length).fill(-1))
-    setStep('intro')
+    paginate('result', 1)
   }
 
   // Animation variants for page transitions
-  const pageVariants = {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 }
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 50 : -50,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 50 : -50,
+      opacity: 0
+    })
   }
 
   return (
     <Layout>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" custom={direction}>
         {step === 'intro' && (
-          <motion.div key="intro" {...pageVariants}>
+          <motion.div
+            key="intro"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+          >
             <Intro
-              onStart={() => setStep('phq9')}
+              onStart={() => paginate('phq9', 1)}
               allowLocalSave={allowLocalSave}
               setAllowLocalSave={setAllowLocalSave}
               lastSaved={lastSaved}
@@ -210,7 +236,19 @@ export default function App() {
         )}
 
         {step === 'phq9' && (
-          <motion.div key="phq9" className="space-y-6" {...pageVariants}>
+          <motion.div
+            key="phq9"
+            className="space-y-6"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+          >
             <ProgressBar current={answeredCount(phq9)} total={PHQ9_ITEMS.length} />
             <Questionnaire
               title="第一部分：PHQ-9"
@@ -222,12 +260,12 @@ export default function App() {
               }
             />
             <div className="flex items-center justify-between pt-4">
-              <Button variant="ghost" onClick={() => setStep('intro')}>
+              <Button variant="ghost" onClick={() => paginate('intro', -1)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 返回
               </Button>
               <Button 
-                onClick={() => setStep('gad7')} 
+                onClick={() => paginate('gad7', 1)} 
                 disabled={!allAnswered(phq9)}
                 className="w-32"
               >
@@ -239,7 +277,19 @@ export default function App() {
         )}
 
         {step === 'gad7' && (
-          <motion.div key="gad7" className="space-y-6" {...pageVariants}>
+          <motion.div
+            key="gad7"
+            className="space-y-6"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+          >
             <ProgressBar current={answeredCount(gad7)} total={GAD7_ITEMS.length} />
             <Questionnaire
               title="第二部分：GAD-7"
@@ -251,12 +301,12 @@ export default function App() {
               }
             />
             <div className="flex items-center justify-between pt-4">
-              <Button variant="ghost" onClick={() => setStep('phq9')}>
+              <Button variant="ghost" onClick={() => paginate('phq9', -1)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 上一步
               </Button>
               <Button 
-                onClick={() => setStep('result')} 
+                onClick={() => paginate('result', 1)} 
                 disabled={!allAnswered(gad7)}
                 className="w-32"
               >
@@ -268,7 +318,18 @@ export default function App() {
         )}
 
         {step === 'result' && (
-          <motion.div key="result" {...pageVariants}>
+          <motion.div
+            key="result"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+          >
             <Result
               phqTotal={phqTotal}
               gadTotal={gadTotal}
@@ -282,7 +343,7 @@ export default function App() {
               allowLocalSave={allowLocalSave}
               setAllowLocalSave={setAllowLocalSave}
               onRestart={handleRestart}
-              onBack={() => setStep('gad7')}
+              onBack={() => paginate('gad7', -1)}
               badgeClass={badgeClass}
             />
           </motion.div>

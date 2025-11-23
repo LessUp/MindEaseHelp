@@ -1,12 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, History, ArrowRight, Trash2 } from 'lucide-react';
+import { ShieldCheck, History, ArrowRight, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { type Phq9Severity, type Gad7Severity } from '../../utils/scoring';
+import { cn } from '../../lib/utils';
 
-// Redefining types locally to avoid circular deps or if not exported
-// Ideally these should be imported from a shared types file
 type AssessmentSnapshot = {
   ts: number
   phqTotal: number
@@ -23,8 +22,8 @@ interface IntroProps {
   onRestore: () => void;
   onClearHistory: () => void;
   formatTimestamp: (ts: number) => string;
-  badgeClass: (s: string) => string;
-  severityText: (s: string) => string;
+  badgeClass: (s: Phq9Severity | Gad7Severity) => string;
+  severityText: (s: Phq9Severity | Gad7Severity) => string;
 }
 
 export function Intro({
@@ -43,52 +42,52 @@ export function Intro({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className="space-y-8"
     >
-      <Card className="space-y-6 shadow-md border-slate-200/60">
-        <div className="space-y-4">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            CBT 认知行为疗法自助评估
-          </h1>
-          <p className="text-slate-600 text-base leading-relaxed">
-            本工具整合了国际通用的 <strong>PHQ-9 (抑郁症筛查)</strong> 与 <strong>GAD-7 (焦虑症筛查)</strong> 量表。
-            通过简单的自我评估，帮助您了解当前的情绪状态，并提供基于 CBT (认知行为疗法) 的应对建议。
-          </p>
+      <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-8 md:p-10">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-sky-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+        
+        <div className="relative z-10 space-y-6">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-medium border border-sky-100">
+              <Sparkles className="w-3 h-3" />
+              <span>专业的心理健康自测工具</span>
+            </div>
+            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              了解您的<span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-emerald-600">情绪状态</span>
+            </h1>
+            <p className="text-slate-600 text-lg leading-relaxed max-w-2xl">
+              本工具整合了国际通用的 <strong>PHQ-9 (抑郁症筛查)</strong> 与 <strong>GAD-7 (焦虑症筛查)</strong> 量表。
+              通过简单的自我评估，帮助您了解当前的情绪状态，并提供基于 CBT (认知行为疗法) 的应对建议。
+            </p>
+          </div>
           
-          <div className="bg-blue-50/50 rounded-lg p-4 border border-blue-100 text-sm text-blue-800 space-y-2">
-            <div className="flex items-start gap-2">
-              <ShieldCheck className="w-5 h-5 shrink-0 text-blue-600" />
-              <div>
-                <strong>隐私说明：</strong>
-                您的所有评估数据默认仅在本地浏览器处理，绝不会上传至任何服务器。
-              </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
+            <Button size="lg" onClick={onStart} className="w-full sm:w-auto group bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-300/50">
+              开始评估
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            
+            <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-4 py-3 rounded-lg border border-slate-100 w-full sm:w-auto">
+              <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>数据仅本地处理，保护隐私</span>
             </div>
           </div>
 
-          <ul className="text-slate-600 text-sm space-y-2 list-disc pl-5 marker:text-slate-400">
-            <li>预计耗时：3-5 分钟</li>
-            <li>适用人群：18岁及以上成年人</li>
-            <li>注意：本结果仅供参考，不能替代专业医生的临床诊断</li>
-          </ul>
+          <div className="pt-6 border-t border-slate-100">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-500 cursor-pointer hover:text-slate-800 transition-colors select-none">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                checked={allowLocalSave}
+                onChange={(e) => setAllowLocalSave(e.target.checked)}
+              />
+              允许在本地浏览器保存历史记录
+            </label>
+          </div>
         </div>
-
-        <div className="pt-4 flex flex-col sm:flex-row sm:items-center gap-4 border-t border-slate-100">
-          <Button size="lg" onClick={onStart} className="w-full sm:w-auto group">
-            开始评估
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-          </Button>
-          
-          <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer hover:text-slate-900 transition-colors p-2 rounded hover:bg-slate-50">
-            <input
-              type="checkbox"
-              className="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-              checked={allowLocalSave}
-              onChange={(e) => setAllowLocalSave(e.target.checked)}
-            />
-            允许在本地保存历史记录
-          </label>
-        </div>
-      </Card>
+      </div>
 
       {lastSaved && (
         <motion.div

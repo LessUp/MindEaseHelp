@@ -33,7 +33,7 @@ export default function Questionnaire({ title, subtitle, items, responses, onCha
               <span className="inline-block w-6 text-slate-400 font-normal">{idx + 1}.</span>
               {q}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pl-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pl-0 sm:pl-6">
               {COMMON_OPTIONS.map(opt => {
                 const isSelected = responses[idx] === opt.value;
                 return (
@@ -41,21 +41,21 @@ export default function Questionnaire({ title, subtitle, items, responses, onCha
                     key={opt.value}
                     onClick={() => onChange(idx, opt.value)}
                     className={cn(
-                      "relative flex items-center justify-center p-3 rounded-lg border transition-all text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1",
+                      "relative flex items-center justify-center px-4 py-3 rounded-xl border transition-all text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:ring-offset-1 group",
                       isSelected 
-                        ? "border-sky-600 bg-sky-50 text-sky-700 shadow-sm" 
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                        ? "border-sky-500 bg-sky-50 text-sky-700 shadow-md shadow-sky-100" 
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm"
                     )}
                   >
                     {isSelected && (
                       <motion.div
                         layoutId={`indicator-${idx}`}
-                        className="absolute inset-0 rounded-lg border-2 border-sky-600 pointer-events-none"
+                        className="absolute inset-0 rounded-xl border-2 border-sky-500 pointer-events-none"
                         initial={false}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
                       />
                     )}
-                    {opt.label}
+                    <span className="relative z-10">{opt.label}</span>
                   </button>
                 )
               })}
