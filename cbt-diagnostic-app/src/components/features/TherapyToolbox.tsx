@@ -7,6 +7,7 @@ import {
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
+import { getColor, type ColorName } from '../../lib/colors'
 import { CbtTools } from './CbtTools'
 import { DbtTools } from './DbtTools'
 import { ActTools } from './ActTools'
@@ -26,7 +27,7 @@ export function TherapyToolbox({ recommended = [] }: TherapyToolboxProps) {
       id: 'CBT' as TherapyType, 
       name: 'CBT 认知行为', 
       icon: Brain, 
-      color: 'blue',
+      color: 'blue' as ColorName,
       description: '改变思维模式',
       component: CbtTools 
     },
@@ -34,7 +35,7 @@ export function TherapyToolbox({ recommended = [] }: TherapyToolboxProps) {
       id: 'DBT' as TherapyType, 
       name: 'DBT 辩证行为', 
       icon: Scale, 
-      color: 'purple',
+      color: 'purple' as ColorName,
       description: '接纳与改变',
       component: DbtTools 
     },
@@ -42,7 +43,7 @@ export function TherapyToolbox({ recommended = [] }: TherapyToolboxProps) {
       id: 'ACT' as TherapyType, 
       name: 'ACT 接纳承诺', 
       icon: Compass, 
-      color: 'green',
+      color: 'green' as ColorName,
       description: '心理灵活性',
       component: ActTools 
     },
@@ -50,24 +51,19 @@ export function TherapyToolbox({ recommended = [] }: TherapyToolboxProps) {
       id: 'Mindfulness' as TherapyType, 
       name: '正念冥想', 
       icon: Moon, 
-      color: 'indigo',
+      color: 'indigo' as ColorName,
       description: '活在当下',
       component: MeditationTools 
     },
   ]
 
-  const getColorClasses = (color: string, isActive: boolean) => {
-    const colors: Record<string, { bg: string; text: string; border: string; activeBg: string }> = {
-      blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', activeBg: 'bg-blue-100' },
-      purple: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', activeBg: 'bg-purple-100' },
-      green: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200', activeBg: 'bg-green-100' },
-      indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200', activeBg: 'bg-indigo-100' },
-      orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', activeBg: 'bg-orange-100' },
-      teal: { bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-200', activeBg: 'bg-teal-100' },
-    }
-    const c = colors[color] || colors.blue
-    return isActive ? `${c.activeBg} ${c.border} ${c.text} ring-2 ring-${color}-400` : `${c.bg} ${c.border} hover:${c.activeBg}`
-  }
+  const getColorStyles = (color: ColorName) => ({
+    bg: getColor(color, 50),
+    bgHover: getColor(color, 100),
+    text: getColor(color, 600),
+    border: getColor(color, 200),
+    icon: getColor(color, 500),
+  })
 
   // 获取疗法详细信息
   const therapyInfo = showInfo ? ALL_THERAPIES.find(t => t.id === showInfo) : null
@@ -95,31 +91,37 @@ export function TherapyToolbox({ recommended = [] }: TherapyToolboxProps) {
         <div className="grid grid-cols-2 gap-4">
           {therapyOptions.map((therapy) => {
             const isRecommended = recommended.includes(therapy.id)
+            const colors = getColorStyles(therapy.color)
             return (
               <motion.button
                 key={therapy.id}
                 onClick={() => setSelectedTherapy(therapy.id)}
-                className={cn(
-                  "p-4 rounded-xl border-2 text-left transition-all relative",
-                  "hover:shadow-lg hover:-translate-y-1",
-                  getColorClasses(therapy.color, false)
-                )}
+                className="p-4 rounded-2xl border-2 text-left transition-all relative hover:shadow-lg hover:-translate-y-1"
+                style={{
+                  backgroundColor: colors.bg,
+                  borderColor: colors.border,
+                }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
                 {isRecommended && (
-                  <span className="absolute -top-2 -right-2 bg-amber-400 text-white text-xs px-2 py-0.5 rounded-full">
+                  <span className="absolute -top-2 -right-2 bg-amber-400 text-white text-xs px-2 py-0.5 rounded-full shadow-sm">
                     推荐
                   </span>
                 )}
-                <therapy.icon className={cn("w-8 h-8 mb-2", `text-${therapy.color}-500`)} />
+                <div 
+                  className="w-12 h-12 rounded-xl mb-3 flex items-center justify-center"
+                  style={{ backgroundColor: colors.bgHover }}
+                >
+                  <therapy.icon className="w-6 h-6" style={{ color: colors.icon }} />
+                </div>
                 <h3 className="font-bold text-slate-800 mb-1">{therapy.name}</h3>
                 <p className="text-sm text-slate-500">{therapy.description}</p>
                 
                 {/* Info button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowInfo(therapy.id) }}
-                  className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/50"
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/70 transition-colors"
                 >
                   <Info className="w-4 h-4 text-slate-400" />
                 </button>

@@ -8,12 +8,13 @@ import { useAppStore } from '../../stores/useAppStore'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
+import { getColor, type ColorName } from '../../lib/colors'
 import type { AssessmentRecord, ScaleType } from '../../core/types'
 
 // ========================================
 // 量表信息映射
 // ========================================
-const SCALE_INFO: Record<ScaleType, { name: string; color: string; maxScore: number }> = {
+const SCALE_INFO: Record<ScaleType, { name: string; color: ColorName; maxScore: number }> = {
   PHQ9: { name: 'PHQ-9 抑郁', color: 'sky', maxScore: 27 },
   GAD7: { name: 'GAD-7 焦虑', color: 'emerald', maxScore: 21 },
   PSS10: { name: 'PSS-10 压力', color: 'amber', maxScore: 40 },
@@ -28,35 +29,34 @@ const SCALE_INFO: Record<ScaleType, { name: string; color: string; maxScore: num
 interface ScoreChartProps {
   data: { date: string; score: number }[]
   maxScore: number
-  color: string
+  color: ColorName
 }
 
 function ScoreChart({ data, maxScore, color }: ScoreChartProps) {
   if (data.length === 0) {
     return (
-      <div className="h-32 flex items-center justify-center text-slate-400 text-sm">
+      <div className="h-40 flex items-center justify-center text-slate-400 text-sm">
         暂无数据
       </div>
     )
   }
 
   const maxValue = Math.max(...data.map(d => d.score), maxScore * 0.5)
+  const bgColor = getColor(color, 500)
   
   return (
-    <div className="h-32 flex items-end gap-1 px-2">
+    <div className="h-40 flex items-end gap-2 px-2 pt-4">
       {data.map((item, idx) => {
-        const height = (item.score / maxValue) * 100
+        const height = Math.max((item.score / maxValue) * 100, 8)
         return (
           <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+            <div className="text-[10px] text-slate-500 font-medium">{item.score}</div>
             <motion.div
               initial={{ height: 0 }}
               animate={{ height: `${height}%` }}
               transition={{ delay: idx * 0.05, duration: 0.3 }}
-              className={cn(
-                "w-full rounded-t-sm min-h-[4px]",
-                `bg-${color}-500`
-              )}
-              style={{ backgroundColor: `var(--${color}-500, #0ea5e9)` }}
+              className="w-full rounded-t-md min-h-[8px]"
+              style={{ backgroundColor: bgColor }}
             />
             <span className="text-[10px] text-slate-400 truncate w-full text-center">
               {item.date.slice(5)}
@@ -97,8 +97,11 @@ interface RecordCardProps {
 
 function RecordCard({ record, onDelete }: RecordCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
-  const scaleInfo = SCALE_INFO[record.scaleId] || { name: record.scaleId, color: 'slate', maxScore: 100 }
+  const scaleInfo = SCALE_INFO[record.scaleId] || { name: record.scaleId, color: 'slate' as ColorName, maxScore: 100 }
   const percentage = Math.round((record.totalScore / scaleInfo.maxScore) * 100)
+  const bgColor = getColor(scaleInfo.color, 500)
+  const bgLightColor = getColor(scaleInfo.color, 50)
+  const textColor = getColor(scaleInfo.color, 700)
   
   return (
     <motion.div
@@ -106,7 +109,7 @@ function RecordCard({ record, onDelete }: RecordCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
-      className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm"
+      className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between mb-3">
         <div>
@@ -128,27 +131,28 @@ function RecordCard({ record, onDelete }: RecordCardProps) {
       </div>
       
       {/* 进度条 */}
-      <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-3">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
-          className={cn("h-full rounded-full", `bg-${scaleInfo.color}-500`)}
-          style={{ backgroundColor: `var(--${scaleInfo.color}-500, #0ea5e9)` }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="h-full rounded-full"
+          style={{ backgroundColor: bgColor }}
         />
       </div>
       
       <div className="flex items-center justify-between">
-        <span className={cn(
-          "px-2 py-0.5 rounded-full text-xs font-medium",
-          `bg-${scaleInfo.color}-50 text-${scaleInfo.color}-700`
-        )}>
+        <span 
+          className="px-3 py-1 rounded-full text-xs font-medium"
+          style={{ backgroundColor: bgLightColor, color: textColor }}
+        >
           {record.severity}
         </span>
         
         {!showConfirm ? (
           <button
             onClick={() => setShowConfirm(true)}
-            className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors"
+            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -156,15 +160,15 @@ function RecordCard({ record, onDelete }: RecordCardProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowConfirm(false)}
-              className="text-xs text-slate-400 hover:text-slate-600"
+              className="px-3 py-1 text-xs text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100"
             >
               取消
             </button>
             <button
               onClick={() => onDelete(record.id)}
-              className="text-xs text-rose-500 font-medium hover:text-rose-600"
+              className="px-3 py-1 text-xs text-white bg-rose-500 hover:bg-rose-600 rounded-lg font-medium"
             >
-              确认删除
+              删除
             </button>
           </div>
         )}

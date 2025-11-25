@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Questionnaire from './components/Questionnaire'
 import { AppShell } from './components/layout/AppShell'
 import { Intro } from './components/views/Intro'
+import { HomePage } from './components/views/HomePage'
 import { Result } from './components/views/Result'
 import { ProgressBar } from './components/ui/ProgressBar'
 import { Button } from './components/ui/Button'
@@ -267,17 +268,7 @@ export default function App() {
               opacity: { duration: 0.2 }
             }}
           >
-            <Intro
-              onStart={() => paginate('phq9', 1)}
-              allowLocalSave={allowLocalSave}
-              setAllowLocalSave={setAllowLocalSave}
-              lastSaved={lastSaved}
-              onRestore={restoreFromLastSaved}
-              onClearHistory={clearLocalSnapshot}
-              formatTimestamp={formatTimestamp}
-              badgeClass={badgeClass}
-              severityText={severityText}
-            />
+            <HomePage onStartAssessment={() => paginate('phq9', 1)} />
           </motion.div>
         )}
 
