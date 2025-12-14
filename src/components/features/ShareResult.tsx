@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Download, Share2, X, ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import html2canvas from 'html2canvas';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { type Phq9Severity, type Gad7Severity } from '../../utils/scoring';
@@ -46,6 +45,7 @@ export function ShareResult({ phqTotal, gadTotal, phqLabel, gadLabel, date }: Sh
     if (!cardRef.current) return;
     setIsGenerating(true);
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(cardRef.current, {
         scale: 2, // Retina display support
         useCORS: true,
