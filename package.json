@@ -1,5 +1,61 @@
 {
+  "name": "cbt-diagnostic-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/cbt-diagnostic-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/cbt-diagnostic-app/issues"
+  },
+  "homepage": ".",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --open",
+    "typecheck": "tsc --noEmit",
+    "typecheck:node": "tsc -p tsconfig.node.json --noEmit",
+    "lint": "eslint src vite.config.ts --ext .ts,.tsx",
+    "lint:fix": "eslint src vite.config.ts --ext .ts,.tsx --fix",
+    "format": "prettier . -w",
+    "check": "npm run typecheck && npm run typecheck:node && npm run lint",
+    "deploy:gh": "vite build && gh-pages -d dist"
+  },
   "dependencies": {
-    "html2canvas": "^1.4.1"
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.24",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^0.554.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@eslint/js": "^9.39.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.12.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsx-a11y": "^6.9.0",
+    "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "gh-pages": "^6.2.0",
+    "globals": "^15.12.0",
+    "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.6",
+    "tailwindcss": "^3.4.14",
+    "typescript-eslint": "^8.8.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
   }
 }
