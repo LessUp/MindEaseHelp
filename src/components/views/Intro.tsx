@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, History, ArrowRight, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { type Phq9Severity, type Gad7Severity } from '../../utils/scoring';
+import { type Phq9Severity, type Gad7Severity } from '../../domain/assessment/scoring';
 import { cn } from '../../lib/utils';
 
 type AssessmentSnapshot = {

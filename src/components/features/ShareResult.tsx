@@ -3,7 +3,7 @@ import { Download, Share2, X, ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
-import { type Phq9Severity, type Gad7Severity } from '../../utils/scoring';
+import { type Phq9Severity, type Gad7Severity } from '../../domain/assessment/scoring';
 
 interface ShareResultProps {
   phqTotal: number;
